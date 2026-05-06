@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Esame di Informatica – Generatore PDF (UniGe)</title>
+  <style>
+    :root{ --accent:#0b5fff; --ink:#111; --muted:#666; --border:#e6e6e6; }
+    *{box-sizing:border-box}
+    body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; line-height:1.45; color:var(--ink); margin:0; background:#fafafa; }
+    .container{max-width:880px; margin:32px auto; padding:0 16px}
+    header{display:flex; align-items:center; gap:12px; margin-bottom:24px}
+    header .logo{width:40px; height:40px; border-radius:8px; background:var(--accent);} header h1{font-size:20px; margin:0}
+
+    .card{background:#fff; border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,.04)}
+    .card + .card{margin-top:20px}
+
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    label{font-weight:600; font-size:14px}
+    input, select{width:100%; margin-top:6px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:16px}
+    input[type="checkbox"]{width:auto; margin-right:8px; transform:translateY(2px)}
+
+    .actions{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+    button{appearance:none; border:none; border-radius:10px; padding:12px 16px; font-size:15px; cursor:pointer}
+    .primary{background:var(--accent); color:#fff} .ghost{background:#fff; border:1px solid var(--border);}
+
+    .preview-wrap{padding:8px; background:repeating-linear-gradient(45deg,#f7f7f9,#f7f7f9 10px,#f0f0f3 10px,#f0f0f3 20px); border-radius:12px}
+    .sheet{background:#fff; color:#000; width:210mm; min-height:297mm; margin:0 auto; border:1px solid var(--border); border-radius:12px; padding:24mm 22mm; position:relative}
+    .sheet h2{font-size:20pt; text-align:center; margin:0}
+    .sheet h3{font-size:14pt; text-align:center; margin:6pt 0 24pt 0; color:var(--muted)}
+    .hr{height:1px; background:#ddd; margin:18pt 0}
+    .title{font-size:16pt; text-align:center; margin:18pt 0 24pt; font-weight:700}
+    .p{font-size:12pt; margin:12pt 0}
+    .muted{color:#666}
+
+    .stemma-wrap{display:flex; justify-content:center; margin-bottom:10pt}
+    .stemma{max-width:28mm; height:auto}
+
+    .docente{margin-top:24pt}
+    .docente .label{color:#666; font-size:11pt}
+    .docente .name{font-weight:700; font-size:12pt}
+
+    .legal{font-size:10.5pt; color:#333; margin-top:10pt; font-style:italic}
+    .firma-note{
+      position:absolute;
+      bottom:18mm;
+      left:0;
+      width:100%;
+      text-align:center;
+      font-size:10.5pt;
+      color:#222;
+      font-weight:600;
+      letter-spacing:0.5px;
+    }
+
+    .options{margin-top:10px; display:none; border:1px dashed var(--border); border-radius:10px; padding:12px}
+    .opt-row{display:grid; grid-template-columns: auto 1fr; align-items:center; gap:10px; margin-bottom:10px}
+    .opt-fields{display:none; margin-left:28px; margin-top:-6px}
+    .opt-fields .grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+    .opt-fields .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+
+    @page{size:A4; margin:20mm}
+    @media print{
+      body{background:#fff}
+      .no-print{display:none !important}
+      .sheet{width:210mm; min-height:297mm; padding:24mm 22mm; margin:0; border:none; border-radius:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="no-print">
+      <div class="logo" aria-hidden="true"></div>
+      <h1>Esame di Informatica – Generatore documento UniGe</h1>
+    </header>
+
+    <section class="card no-print" aria-labelledby="form-title">
+      <h2 id="form-title" style="margin:0 0 12px 0; font-size:18px">Dati del candidato</h2>
+      <div class="grid" role="group" aria-label="Modulo dati">
+        <div>
+          <label for="nome">Nome</label>
+          <input id="nome" name="nome" type="text" autocomplete="given-name" placeholder="Es. Maria" required />
+        </div>
+        <div>
+          <label for="cognome">Cognome</label>
+          <input id="cognome" name="cognome" type="text" autocomplete="family-name" placeholder="Es. Rossi" required />
+        </div>
+        <div>
+          <label for="data">Data dell'esame</label>
+          <input id="data" name="data" type="date" required />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="ghost" id="btn-opzioni" type="button">Opzioni</button>
+        <button class="ghost" id="cambiaLogo" type="button">Imposta/Modifica logo</button>
+        <input type="file" id="logoInput" accept="image/*" class="no-print" style="display:none" />
+        <button class="primary" id="genera">Crea documento</button>
+        <button class="ghost" id="stampa" disabled>Salva come PDF</button>
+        <button class="ghost" id="pulisci" type="button">Pulisci</button>
+      </div>
+
+      <!-- Pannello Opzioni -->
+      <div id="options-panel" class="options no-print" aria-label="Opzioni aggiuntive">
+        <div class="opt-row">
+          <label><input type="checkbox" id="opt-matricola" /> Matricola</label>
+        </div>
+        <div id="fields-matricola" class="opt-fields">
+          <div class="grid-2">
+            <div>
+              <label for="matricola">Numero di matricola</label>
+              <input id="matricola" name="matricola" type="text" placeholder="Es. 0123456" />
+            </div>
+          </div>
+        </div>
+
+        <div class="opt-row">
+          <label><input type="checkbox" id="opt-orario" /> Orario</label>
+        </div>
+        <div id="fields-orario" class="opt-fields">
+          <div class="grid-3">
+            <div>
+              <label for="orario-dalle">Dalle</label>
+              <input id="orario-dalle" name="orario_dalle" type="time" />
+            </div>
+            <div>
+              <label for="orario-alle">Alle</label>
+              <input id="orario-alle" name="orario_alle" type="time" />
+            </div>
+          </div>
+          <p class="muted" style="margin:6px 0 0 0">Formato suggerito: 09:00 — 10:30</p>
+        </div>
+      </div>
+
+      <p class="muted" style="margin-top:8px">Suggerimento: le opzioni selezionate verranno inserite nel testo del certificato.</p>
+    </section>
+
+    <section class="card preview-wrap" aria-labelledby="preview-title">
+      <h2 id="preview-title" class="no-print" style="margin:0 0 12px 0; font-size:18px">Anteprima del documento</h2>
+
+      <article id="certificato" class="sheet" aria-label="Certificato stampabile">
+        <div class="stemma-wrap"><img id="stemma" class="stemma" alt="Stemma Università di Genova"/></div>
+        <h2>Università degli Studi di Genova</h2>
+        <h3>Facoltà di Scienze Mediche e Farmaceutiche</h3>
+        <div class="hr"></div>
+        <div class="title">Attestazione di partecipazione all'esame</div>
+        <p class="p" id="paragrafo">
+          Si attesta che <strong><span id="out-nome">&nbsp;</span> <span id="out-cognome">&nbsp;</span></strong><span id="out-matricola"></span>
+          ha partecipato all'esame di <strong>Informatica</strong>
+          in data <strong><span id="out-data">&nbsp;</span></strong><span id="out-orario"></span>.
+        </p>
+        <p class="legal">Si rilascia il presente certificato per i fini consentiti dalla legge.</p>
+
+        <div class="docente">
+          <div class="label">Il docente</div>
+          <div class="name">Prof. Giorgio Sacchi</div>
+        </div>
+
+        <div class="firma-note">
+          IL PRESENTE DOCUMENTO È VALIDO SOLO SE È FIRMATO DIGITALMENTE DAL DOCENTE
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    const $ = sel => document.querySelector(sel);
+    const LOGO_KEY = 'unige_logo_base64_v1';
+    const DEFAULT_LOGO_DATAURL = '';
+    let lastNome = '', lastCognome = '';
+
+    function setLogo(src){ $('#stemma').src = src; }
+    function loadSavedLogo(){ const saved = localStorage.getItem(LOGO_KEY); if(saved){ setLogo(saved); } else if(DEFAULT_LOGO_DATAURL){ setLogo(DEFAULT_LOGO_DATAURL); } }
+    function handleLogoFile(file){ const reader = new FileReader(); reader.onload = e => { const dataUrl = e.target.result; localStorage.setItem(LOGO_KEY, dataUrl); setLogo(dataUrl); }; reader.readAsDataURL(file); }
+
+    function formatItalianDate(iso){ try{ const d = new Date(iso); if (isNaN(d)) return ''; return new Intl.DateTimeFormat('it-IT', { dateStyle: 'long' }).format(d); }catch{ return ''; } }
+    function capitalizeWords(s){ return s.replace(/\s+/g,' ').trim().replace(/(^|\s|[-'])\p{L}/gu, m => m.toUpperCase()); }
+    function fmtTime(t){ if(!t) return ''; const [h,m] = t.split(':'); return `${h.padStart(2,'0')}:${m.padStart(2,'0')}`; }
+
+    // Toggle opzioni UI
+    $('#btn-opzioni').addEventListener('click', () => {
+      const panel = $('#options-panel');
+      panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'block' : 'none';
+    });
+    $('#opt-matricola').addEventListener('change', e => { $('#fields-matricola').style.display = e.target.checked ? 'block' : 'none'; });
+    $('#opt-orario').addEventListener('change', e => { $('#fields-orario').style.display = e.target.checked ? 'block' : 'none'; });
+
+    function creaDocumento(){
+      const nome = capitalizeWords($('#nome').value || '');
+      const cognome = capitalizeWords($('#cognome').value || '');
+      const dataEsameISO = $('#data').value;
+
+      if(!nome || !cognome || !dataEsameISO){
+        alert('Compila nome, cognome e data dell\'esame.');
+        return;
+      }
+
+      // Opzioni
+      const useMatricola = $('#opt-matricola').checked;
+      const useOrario = $('#opt-orario').checked;
+
+      let matricolaText = '';
+      if(useMatricola){
+        const matr = ($('#matricola').value || '').trim();
+        if(!matr){ alert('Hai selezionato "Matricola": inserisci il numero di matricola.'); return; }
+        matricolaText = ` matricola ${matr}`; // <-- niente virgola
+      }
+
+      let orarioText = '';
+      if(useOrario){
+        const dalle = $('#orario-dalle').value;
+        const alle = $('#orario-alle').value;
+        if(!dalle || !alle){ alert('Hai selezionato "Orario": inserisci sia l\'orario di inizio (dalle) sia quello di fine (alle).'); return; }
+        orarioText = ` dalle ${fmtTime(dalle)} alle ${fmtTime(alle)}`; // <-- niente parola 'orario' e niente virgola
+      }
+
+      const dataIT = formatItalianDate(dataEsameISO);
+
+      // Output nel certificato
+      $('#out-nome').textContent = nome;
+      $('#out-cognome').textContent = cognome;
+      $('#out-matricola').textContent = matricolaText;
+      $('#out-data').textContent = dataIT;
+      $('#out-orario').textContent = orarioText;
+
+      // memorizza per nome file
+      lastNome = nome;
+      lastCognome = cognome;
+
+      // Abilita stampa e scorri
+      $('#stampa').disabled = false;
+      document.getElementById('certificato').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    function salvaPDF(){
+      if(!lastNome || !lastCognome){
+        alert('Prima crea il documento (Nome, Cognome, Data) e poi salva come PDF.');
+        return;
+      }
+      const originalTitle = document.title;
+      const safe = (s) => s.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g,' ').trim();
+      document.title = `${safe(lastCognome)} ${safe(lastNome)}`; // suggerisce 'Cognome Nome.pdf'
+      window.print();
+      // ripristina dopo un attimo
+      setTimeout(()=>{ document.title = originalTitle; }, 250);
+    }
+
+    function pulisci(){
+      $('#nome').value = ''; $('#cognome').value = ''; $('#data').value = '';
+      $('#matricola').value = '';
+      $('#orario-dalle').value = ''; $('#orario-alle').value = '';
+      $('#opt-matricola').checked = false; $('#fields-matricola').style.display = 'none';
+      $('#opt-orario').checked = false; $('#fields-orario').style.display = 'none';
+      $('#out-nome').textContent='\u00A0'; $('#out-cognome').textContent='\u00A0'; $('#out-data').textContent='\u00A0';
+      $('#out-matricola').textContent=''; $('#out-orario').textContent='';
+      lastNome=''; lastCognome='';
+      $('#stampa').disabled = true; window.scrollTo({top:0, behavior:'smooth'});
+    }
+
+    $('#genera').addEventListener('click', e => { e.preventDefault(); creaDocumento(); });
+    $('#stampa').addEventListener('click', e => { e.preventDefault(); salvaPDF(); });
+    $('#pulisci').addEventListener('click', pulisci);
+
+    // Logo upload handlers
+    $('#cambiaLogo').addEventListener('click', ()=> $('#logoInput').click());
+    $('#logoInput').addEventListener('change', e => { const file = e.target.files && e.target.files[0]; if(file) handleLogoFile(file); });
+
+    // Initialize
+    loadSavedLogo();
+  </script>
+</body>
+</html>
